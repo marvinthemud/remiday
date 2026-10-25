@@ -102,13 +102,35 @@
   /* ---------- media (images stored as data URIs, readable only when signed in) ---------- */
   const mediaCache = {};
   window.blobUrl = id => mediaCache[id] || "";
+  // Built-in images (profile photos, Remi's heads, first photos) ship encrypted in media.enc.
+  // The key lives in the database, so only a signed-in phone can unlock them.
+  let bundleP = null;
+  function loadBundle(){
+    if(!bundleP) bundleP = (async () => {
+      try{
+        await ensureReady();
+        const sec = coll("secrets").get("media");
+        if(!sec || !sec.key) return;
+        const raw = Uint8Array.from(atob((await (await fetch("media.enc", { cache: "no-cache" })).text()).trim()), c => c.charCodeAt(0));
+        const key = await crypto.subtle.importKey("raw", Uint8Array.from(atob(sec.key), c => c.charCodeAt(0)), "AES-GCM", false, ["decrypt"]);
+        const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: raw.slice(0, 12) }, key, raw.slice(12));
+        Object.assign(mediaCache, JSON.parse(new TextDecoder().decode(plain)));
+      }catch(e){ console.warn("REMIDAY: could not unlock built-in images", e); }
+    })();
+    return bundleP;
+  }
+  const shown = new Set();
   window.loadMedia = async ids => {
+    await loadBundle();
     const need = ids.filter(id => id && !(id in mediaCache));
-    if(!need.length) return false;
-    const { data, error } = await sb.from("media").select("id,data").in("id", need);
-    if(error) return false;
-    (data || []).forEach(r => mediaCache[r.id] = r.data);
-    return true;
+    if(need.length){
+      const { data } = await sb.from("media").select("id,data").in("id", need);
+      (data || []).forEach(r => mediaCache[r.id] = r.data);
+    }
+    // true when something new became available, so the app knows to redraw
+    let changed = false;
+    ids.forEach(id => { if(id && mediaCache[id] && !shown.has(id)){ shown.add(id); changed = true; } });
+    return changed;
   };
   const assets = {
     async upload(blob){
