@@ -144,7 +144,7 @@
       e.preventDefault(); err.textContent = ""; btn.disabled = true; btn.textContent = "Unlocking…";
       const { error } = await sb.auth.signInWithPassword({ email: cfg.loginEmail, password: input.value });
       btn.disabled = false; btn.textContent = "Unlock";
-      if(error){ err.textContent = "That passcode didn't work. Try again."; input.select(); return; }
+      if(error){ const offline = !error.status || /fetch|network/i.test(error.message || ""); err.textContent = offline ? "Can't reach the server right now. Check your connection and try again." : "That passcode didn't work. Try again."; input.select(); return; }
       wrap.remove(); resolve();
     });
   }
