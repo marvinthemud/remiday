@@ -136,6 +136,12 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .bottomrow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px}
 .bottomrow .add{margin-top:0}
 .walks{display:flex;gap:6px;margin-left:auto}
+.bottomrow .editbtn{margin-left:8px}
+.add.editbtn svg{width:17px;height:17px}
+.add.editbtn.on{background:var(--ink);color:#fff}
+.tmin{font:inherit;font-size:14px;color:var(--ink);background:var(--well);border:0;border-radius:999px;padding:4px 10px;min-width:0;width:auto;max-width:120px;-webkit-appearance:none;appearance:none}
+.tmin::-webkit-calendar-picker-indicator{display:none;-webkit-appearance:none}
+.tmin::-webkit-inner-spin-button{display:none}
 .nextline{font-size:14px;color:var(--muted);margin-top:-4px;margin-bottom:-8px}
 .nm{font-weight:600}
 .nextline b{font-weight:700;color:var(--ink-2)}
@@ -237,9 +243,11 @@ const UPICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 const AVATARS={};
 function avatar(l){if(l==="both")return `<span class="avs">${avatar("a")}${avatar("b")}</span>`;return AVATARS[l]?`<img class="av ${l}" src="${AVATARS[l]}" alt="">`:`<span class="sq ${l}"></span>`}
 const REMI_HEADS=[];
+const PENCIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 21.4998L8.04927 19.3655C8.40421 19.229 8.58168 19.1607 8.74772 19.0716C8.8952 18.9924 9.0358 18.901 9.16804 18.7984C9.31692 18.6829 9.45137 18.5484 9.72028 18.2795L21 6.99982C22.1046 5.89525 22.1046 4.10438 21 2.99981C19.8955 1.89525 18.1046 1.89524 17 2.99981L5.72028 14.2795C5.45138 14.5484 5.31692 14.6829 5.20139 14.8318C5.09877 14.964 5.0074 15.1046 4.92823 15.2521C4.83911 15.4181 4.77085 15.5956 4.63433 15.9506L2.5 21.4998ZM2.5 21.4998L4.55812 16.1488C4.7054 15.7659 4.77903 15.5744 4.90534 15.4867C5.01572 15.4101 5.1523 15.3811 5.2843 15.4063C5.43533 15.4351 5.58038 15.5802 5.87048 15.8703L8.12957 18.1294C8.41967 18.4195 8.56472 18.5645 8.59356 18.7155C8.61877 18.8475 8.58979 18.9841 8.51314 19.0945C8.42545 19.2208 8.23399 19.2944 7.85107 19.4417L2.5 21.4998Z"/></svg>';
+const CHECKICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17L4 12"/></svg>';
 const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const DAYS_LONG=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-const KINDS={daycare:"Daycare",nanny:"Nanny",nap:"Nap",meal:"Meal",bath:"Bath",bedtime:"Bedtime",activity:"Activity",play:"Play",outing:"Outing",work:"Work",free:"Free time",doug:"Doug walk",wake:"Wake-up",other:"Other"};
+const KINDS={daycare:"Daycare",nanny:"Nanny",nap:"Nap",meal:"Meal",bath:"Bath",bedtime:"Bedtime",activity:"Activity",play:"Play",outing:"Outing",work:"Work",free:"Night time",doug:"Doug walk",wake:"Wake-up",other:"Other"};
 /* Parked for later: "Tap here, loser" button. To re-add, render loveBtn() in the bottom row. Click handler (act "love"), HEART icon and .love styles are still in place. */
 function loveBtn(){return `<button type="button" class="love${S.love?" on":""}" data-act="love" aria-pressed="${!!S.love}">${S.love?HEART+"I love you":"Tap here, loser"}</button>`}
 function pill(b,lbl){return `<button type="button" class="walk ${b.lead}" data-act="cycle" data-id="${esc(b.id)}" aria-label="${esc(lbl)}, ${esc(name(b.lead))}. Tap to switch"${S.canWrite?"":" disabled"}>${esc(lbl)}</button>`}
@@ -248,7 +256,7 @@ const OFFLINE=["doug","mealpill"];
 const LEADS=["a","b","both"];
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 
-const S={blocks:[],loaded:false,unavailable:false,settings:{parentA:"Dad",parentB:"Mom"},open:todayIdx(),me:ls.get("rd-me")||"",canWrite:true,db:null,shuf:0,egg:false,ri:+(ls.get("rd-ri")||0)||0,notes:{},noteEdit:null,photos:[],assets:null,uploading:false};
+const S={blocks:[],loaded:false,unavailable:false,settings:{parentA:"Dad",parentB:"Mom"},open:todayIdx(),me:ls.get("rd-me")||"",canWrite:true,db:null,shuf:0,timeEdit:null,egg:false,ri:+(ls.get("rd-ri")||0)||0,notes:{},noteEdit:null,photos:[],assets:null,uploading:false};
 
 function todayIdx(){return (new Date().getDay()+6)%7}
 function nowMin(){const d=new Date();return d.getHours()*60+d.getMinutes()}
@@ -273,6 +281,7 @@ function noteHtml(k){
   return S.canWrite&&!S.unavailable?`<button type="button" class="addnote" data-act="noteEdit" data-k="${k}">+ Add a note</button>`:"";
 }
 function render(){
+  if(document.activeElement&&document.activeElement.classList&&document.activeElement.classList.contains("tmin")){S.renderLater=true;return}
   const _ta=document.getElementById("noteText"),_tv=_ta?_ta.value:null,_tf=_ta&&document.activeElement===_ta;
   const t=todayIdx(), n=nowMin(), cur=S.loaded?current():null;
   let h=`<div class="top pad"><h1 class="logo ${cur?cur.lead:"none"}" aria-label="REMIDAY"><img class="mascot" src="${MASCOT}" alt=""><span class="remi">REMI</span><span class="dayw">DAY</span></h1><button type="button" class="iconbtn" data-act="settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.3951 19.3711L9.97955 20.6856C10.1533 21.0768 10.4368 21.4093 10.7958 21.6426C11.1547 21.8759 11.5737 22.0001 12.0018 22C12.4299 22.0001 12.8488 21.8759 13.2078 21.6426C13.5667 21.4093 13.8503 21.0768 14.024 20.6856L14.6084 19.3711C14.8165 18.9047 15.1664 18.5159 15.6084 18.26C16.0532 18.0034 16.5678 17.8941 17.0784 17.9478L18.5084 18.1C18.9341 18.145 19.3637 18.0656 19.7451 17.8713C20.1265 17.6771 20.4434 17.3763 20.6573 17.0056C20.8715 16.635 20.9735 16.2103 20.9511 15.7829C20.9286 15.3555 20.7825 14.9438 20.5307 14.5978L19.684 13.4344C19.3825 13.0171 19.2214 12.5148 19.224 12C19.2239 11.4866 19.3865 10.9864 19.6884 10.5711L20.5351 9.40778C20.787 9.06175 20.933 8.65007 20.9555 8.22267C20.978 7.79528 20.8759 7.37054 20.6618 7C20.4479 6.62923 20.131 6.32849 19.7496 6.13423C19.3681 5.93997 18.9386 5.86053 18.5129 5.90556L17.0829 6.05778C16.5722 6.11141 16.0577 6.00212 15.6129 5.74556C15.17 5.48825 14.82 5.09736 14.6129 4.62889L14.024 3.31444C13.8503 2.92317 13.5667 2.59072 13.2078 2.3574C12.8488 2.12408 12.4299 1.99993 12.0018 2C11.5737 1.99993 11.1547 2.12408 10.7958 2.3574C10.4368 2.59072 10.1533 2.92317 9.97955 3.31444L9.3951 4.62889C9.18803 5.09736 8.83798 5.48825 8.3951 5.74556C7.95032 6.00212 7.43577 6.11141 6.9251 6.05778L5.49066 5.90556C5.06499 5.86053 4.6354 5.93997 4.25397 6.13423C3.87255 6.32849 3.55567 6.62923 3.34177 7C3.12759 7.37054 3.02555 7.79528 3.04804 8.22267C3.07052 8.65007 3.21656 9.06175 3.46844 9.40778L4.3151 10.5711C4.61704 10.9864 4.77964 11.4866 4.77955 12C4.77964 12.5134 4.61704 13.0137 4.3151 13.4289L3.46844 14.5922C3.21656 14.9382 3.07052 15.3499 3.04804 15.7773C3.02555 16.2047 3.12759 16.6295 3.34177 17C3.55589 17.3706 3.8728 17.6712 4.25417 17.8654C4.63554 18.0596 5.06502 18.1392 5.49066 18.0944L6.92066 17.9422C7.43133 17.8886 7.94587 17.9979 8.39066 18.2544C8.83519 18.511 9.18687 18.902 9.3951 19.3711Z"/><path d="M12 15C13.6568 15 15 13.6569 15 12C15 10.3431 13.6568 9 12 9C10.3431 9 8.99998 10.3431 8.99998 12C8.99998 13.6569 10.3431 15 12 15Z"/></svg></button></div>`;
@@ -288,7 +297,7 @@ function render(){
       const nx=isToday&&S.loaded?list.find(b=>toMin(b.start)>n&&(!cur||toMin(b.start)>=toMin(cur.end))):null;
       const nxName=b=>b.lead==="both"?"both":esc(name(b.lead));
       const quiet=nx&&(nx.kind==="free"||nx.lead==="none");
-      const tab=nx?quiet?`<div class="nexttab a"><b>Next:</b> ${nx.kind==="nap"?`Nap time at ${fmt(nx.start)}`:nx.kind==="free"?"Adult time":`${esc(nx.title)} at ${fmt(nx.start)}`}</div>`:`<div class="nexttab ${nx.lead}"><b>Next:</b> ${nx.kind==="nap"?`Nap time at ${fmt(nx.start)} with <span class="nm ${nx.lead}">${nxName(nx)}</span>`:`${esc(nx.title)} with <span class="nm ${nx.lead}">${nxName(nx)}</span>`}</div>`:"";
+      const tab=nx?quiet?`<div class="nexttab a"><b>Next:</b> ${nx.kind==="nap"?`Nap time at ${fmt(nx.start)}`:nx.kind==="free"?"Night time":`${esc(nx.title)} at ${fmt(nx.start)}`}</div>`:`<div class="nexttab ${nx.lead}"><b>Next:</b> ${nx.kind==="nap"?`Nap time at ${fmt(nx.start)} with <span class="nm ${nx.lead}">${nxName(nx)}</span>`:`${esc(nx.title)} with <span class="nm ${nx.lead}">${nxName(nx)}</span>`}</div>`:"";
       h+=`<div class="dbody"><div class="dmeta"><div class="dmeta-t"><div class="date tnum">${esc(dt)}</div></div></div>${tab}<div class="dcard${tab?" tabbed":""}">`;
       if(isToday&&S.loaded){
         if(cur&&cur.lead==="none") h+=`<div class="status"><div class="hl">${esc(cur.title)} until ${fmt(cur.end)}</div></div>`;
@@ -301,13 +310,13 @@ function render(){
         h+=`<ul class="list">`+list.map(b=>{
           const s=toMin(b.start),e=toMin(b.end);
           const isCur=isToday&&cur&&cur.id===b.id, past=isToday&&e<=n;
-          const bar=b.kind==="free"?29:Math.min(84,Math.max(12,Math.round((e-s)*0.32)));
+          const bar=/ play$/i.test(b.title||"")?58:/^quiet time$/i.test(b.title||"")?40:b.kind==="free"?29:Math.min(84,Math.max(12,Math.round((e-s)*0.32)));
           return `<li class="item${isCur?" current lead-"+b.lead:""}${past?" past":""}">
             <button type="button" class="dot" data-act="cycle" data-id="${esc(b.id)}" aria-label="${esc(name(b.lead))} leading. Tap to switch"${S.canWrite?"":" disabled"}><span class="sq ${b.lead}${b.kind==="nap"||b.kind==="work"||b.kind==="free"?" nap":""}" style="height:${bar}px"></span></button>
             <button type="button" class="t" data-act="edit" data-id="${esc(b.id)}">${esc(b.title)}</button>
-            <span class="tm tnum">${isCur?"until "+fmt(b.end):b.kind==="wake"||b.kind==="free"?fmt(b.start):range(b)}</span></li>`}).join("")+`</ul>`;
+            ${S.timeEdit===d&&S.canWrite?`<input type="time" class="tmin" data-id="${esc(b.id)}" value="${esc(b.start)}" aria-label="Start time for ${esc(b.title)}">`:`<span class="tm tnum">${b.kind==="free"?"🌙":fmt(b.start)}</span>`}</li>`}).join("")+`</ul>`;
       }
-      h+=`<div class="bottomrow">${S.canWrite&&!S.unavailable?`<button type="button" class="add" data-act="add" data-d="${d}" aria-label="Add an event"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5V19M5 12H19"/></svg></button>`:""}${walks.length?`<div class="walks">${walks.map(walkPill).join("")}</div>`:""}</div></div>`;
+      h+=`<div class="bottomrow">${S.canWrite&&!S.unavailable?`<button type="button" class="add" data-act="add" data-d="${d}" aria-label="Add an event"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5V19M5 12H19"/></svg></button><button type="button" class="add editbtn${S.timeEdit===d?" on":""}" data-act="timeEdit" data-d="${d}" aria-label="${S.timeEdit===d?"Done editing times":"Edit times"}" aria-pressed="${S.timeEdit===d}">${S.timeEdit===d?CHECKICON:PENCIL}</button>`:""}${walks.length?`<div class="walks">${walks.map(walkPill).join("")}</div>`:""}</div></div>`;
       h+=`<div class="noterow">${noteHtml(dkey(dateFor(d)))}${loveBtn()}</div>`;
       h+=`</div>`;
     }
@@ -383,6 +392,7 @@ document.addEventListener("click",async ev=>{
   if(act==="close"){if(ev.target===el||el.tagName==="BUTTON")closeSheet();return}
   if(act==="open"){const d=+el.dataset.d;S.open=S.open===d?-1:d;render();return}
   if(act==="settings"){openSettings();return}
+  if(act==="timeEdit"){const d=+el.dataset.d;S.timeEdit=S.timeEdit===d?null:d;render();return}
   if(act==="egg"){if(!S.egg&&REMI_HEADS.length){S.egg=true;render();const r=document.querySelector(".remiav");if(r)r.classList.add("pop")}return}
   if(act==="remi"){ev.stopPropagation();S.ri=(S.ri+1)%REMI_HEADS.length;ls.set("rd-ri",String(S.ri));const im=document.getElementById("remiImg");if(im){im.src=REMI_HEADS[S.ri];el.classList.remove("pop");void el.offsetWidth;el.classList.add("pop")}return}
   if(act==="love"){S.love=!S.love;render();return}
@@ -406,6 +416,16 @@ document.addEventListener("click",async ev=>{
   if(act==="me"){S.me=el.dataset.l;ls.set("rd-me",S.me);openSettings();return}
 });
 document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&sheetOpen())closeSheet()});
+document.addEventListener("change",async ev=>{
+  const t=ev.target;if(!t.classList||!t.classList.contains("tmin")||!S.db)return;
+  const b=S.blocks.find(x=>x.id===t.dataset.id);if(!b||!t.value)return;
+  const shift=toMin(t.value)-toMin(b.start);if(!shift)return;
+  const dur=toMin(b.end)-toMin(b.start);let ns=toMin(t.value),ne=b.end==="24:00"?1440:Math.min(1440,ns+dur);if(ne<=ns)ne=Math.min(1440,ns+15);
+  const hm=m=>m>=1440?"24:00":String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+  b.start=hm(ns);b.end=hm(ne);
+  try{await S.db.collection("blocks").doc(b.id).update({start:b.start,end:b.end});toast(`${b.title} now starts at ${fmt(b.start)}`)}catch(e){toast("Couldn't save that time")}
+});
+document.addEventListener("focusout",ev=>{if(ev.target.classList&&ev.target.classList.contains("tmin")&&S.renderLater){S.renderLater=false;setTimeout(render,0)}});
 document.addEventListener("submit",ev=>{ev.preventDefault();if(ev.target.id==="edForm")saveDraft();if(ev.target.id==="setForm")saveSettings()});
 
 /* ---------- data ---------- */
