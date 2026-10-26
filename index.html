@@ -247,7 +247,7 @@ const PENCIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 const CHECKICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17L4 12"/></svg>';
 const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const DAYS_LONG=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-const KINDS={daycare:"Daycare",nanny:"Nanny",nap:"Nap",meal:"Meal",bath:"Bath",bedtime:"Bedtime",activity:"Activity",play:"Play",outing:"Outing",work:"Work",free:"Night time",doug:"Doug walk",wake:"Wake-up",other:"Other"};
+const KINDS={daycare:"Daycare",nanny:"Nanny",nap:"Nap",meal:"Meal",bath:"Bath",bedtime:"Bedtime",activity:"Activity",play:"Play",outing:"Outing",work:"Work",free:"Grown-up time",doug:"Doug walk",wake:"Wake-up",other:"Other"};
 /* Parked for later: "Tap here, loser" button. To re-add, render loveBtn() in the bottom row. Click handler (act "love"), HEART icon and .love styles are still in place. */
 function loveBtn(){return `<button type="button" class="love${S.love?" on":""}" data-act="love" aria-pressed="${!!S.love}">${S.love?HEART+"I love you":"Tap here, loser"}</button>`}
 function pill(b,lbl){return `<button type="button" class="walk ${b.lead}" data-act="cycle" data-id="${esc(b.id)}" aria-label="${esc(lbl)}, ${esc(name(b.lead))}. Tap to switch"${S.canWrite?"":" disabled"}>${esc(lbl)}</button>`}
@@ -297,7 +297,7 @@ function render(){
       const nx=isToday&&S.loaded?list.find(b=>toMin(b.start)>n&&(!cur||toMin(b.start)>=toMin(cur.end))):null;
       const nxName=b=>b.lead==="both"?"both":esc(name(b.lead));
       const quiet=nx&&(nx.kind==="free"||nx.lead==="none");
-      const tab=nx?quiet?`<div class="nexttab a"><b>Next:</b> ${nx.kind==="nap"?`Nap time at ${fmt(nx.start)}`:nx.kind==="free"?"Night time":`${esc(nx.title)} at ${fmt(nx.start)}`}</div>`:`<div class="nexttab ${nx.lead}"><b>Next:</b> ${nx.kind==="nap"?`Nap time at ${fmt(nx.start)} with <span class="nm ${nx.lead}">${nxName(nx)}</span>`:`${esc(nx.title)} with <span class="nm ${nx.lead}">${nxName(nx)}</span>`}</div>`:"";
+      const tab=nx?quiet?`<div class="nexttab a"><b>Next:</b> ${nx.kind==="nap"?`Nap time at ${fmt(nx.start)}`:nx.kind==="free"?"Grown-up time":`${esc(nx.title)} at ${fmt(nx.start)}`}</div>`:`<div class="nexttab ${nx.lead}"><b>Next:</b> ${nx.kind==="nap"?`Nap time at ${fmt(nx.start)} with <span class="nm ${nx.lead}">${nxName(nx)}</span>`:`${esc(nx.title)} with <span class="nm ${nx.lead}">${nxName(nx)}</span>`}</div>`:"";
       h+=`<div class="dbody"><div class="dmeta"><div class="dmeta-t"><div class="date tnum">${esc(dt)}</div></div></div>${tab}<div class="dcard${tab?" tabbed":""}">`;
       if(isToday&&S.loaded){
         if(cur&&cur.lead==="none") h+=`<div class="status"><div class="hl">${esc(cur.title)} until ${fmt(cur.end)}</div></div>`;
@@ -314,7 +314,7 @@ function render(){
           return `<li class="item${isCur?" current lead-"+b.lead:""}${past?" past":""}">
             <button type="button" class="dot" data-act="cycle" data-id="${esc(b.id)}" aria-label="${esc(name(b.lead))} leading. Tap to switch"${S.canWrite?"":" disabled"}><span class="sq ${b.lead}${b.kind==="nap"||b.kind==="work"||b.kind==="free"?" nap":""}" style="height:${bar}px"></span></button>
             <button type="button" class="t" data-act="edit" data-id="${esc(b.id)}">${esc(b.title)}</button>
-            ${S.timeEdit===d&&S.canWrite?`<input type="time" class="tmin" data-id="${esc(b.id)}" value="${esc(b.start)}" aria-label="Start time for ${esc(b.title)}">`:`<span class="tm tnum">${b.kind==="free"?"🌙":fmt(b.start)}</span>`}</li>`}).join("")+`</ul>`;
+            ${S.timeEdit===d&&S.canWrite?`<input type="time" class="tmin" data-id="${esc(b.id)}" value="${esc(b.start)}" aria-label="Start time for ${esc(b.title)}">`:`<span class="tm tnum">${b.kind==="free"?"✨":fmt(b.start)}</span>`}</li>`}).join("")+`</ul>`;
       }
       h+=`<div class="bottomrow">${S.canWrite&&!S.unavailable?`<button type="button" class="add" data-act="add" data-d="${d}" aria-label="Add an event"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5V19M5 12H19"/></svg></button><button type="button" class="add editbtn${S.timeEdit===d?" on":""}" data-act="timeEdit" data-d="${d}" aria-label="${S.timeEdit===d?"Done editing times":"Edit times"}" aria-pressed="${S.timeEdit===d}">${S.timeEdit===d?CHECKICON:PENCIL}</button>`:""}${walks.length?`<div class="walks">${walks.map(walkPill).join("")}</div>`:""}</div></div>`;
       h+=`<div class="noterow">${noteHtml(dkey(dateFor(d)))}${loveBtn()}</div>`;
